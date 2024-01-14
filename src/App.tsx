@@ -7,6 +7,8 @@ interface Repository {
   id: string;
   name: string;
   url: string;
+  stargazers: { totalCount: number };
+  viewerHasStarred: boolean;
 }
 
 interface PageInfo {
@@ -62,7 +64,7 @@ function App() {
       query: event.target.value,
     });
   };
-  console.log("query:", variables.query);
+  console.log("data?.search", data?.search);
   const search = data?.search;
   const repositoryCount = search?.repositoryCount;
   const repositoryUnit = repositoryCount === 1 ? "Repository" : "Repositories";
@@ -88,7 +90,7 @@ function App() {
     });
   };
 
-  console.log(data?.search.pageInfo);
+  console.log(data?.search.edges);
 
   return (
     <>
@@ -108,6 +110,8 @@ function App() {
               <a href={edge.node.url} target="_blank" rel="noopener noreferrer">
                 {edge.node.name}
               </a>
+              &nbsp;
+              <StarButton node={edge.node} />
             </li>
           );
         })}
@@ -127,3 +131,18 @@ function App() {
 }
 
 export default App;
+
+interface StarButtonProps {
+  node: Repository;
+}
+
+function StarButton({ node }: StarButtonProps) {
+  const totalCount = node.stargazers.totalCount;
+  const viewrHasStared = node.viewerHasStarred;
+  const starCount = totalCount === 1 ? "1 star" : `${totalCount} stars`;
+  return (
+    <button>
+      {starCount} | {viewrHasStared ? "starred" : "-"}
+    </button>
+  );
+}
