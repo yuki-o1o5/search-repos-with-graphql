@@ -1,6 +1,6 @@
 import "./App.css";
-import { useQuery } from "@apollo/client";
-import { SEARCH_REPOSITORIES } from "./graphql";
+import { useMutation, useQuery } from "@apollo/client";
+import { ADD_STAR, REMOVE_STAR, SEARCH_REPOSITORIES } from "./graphql";
 import { useState } from "react";
 
 interface Repository {
@@ -136,12 +136,56 @@ interface StarButtonProps {
   node: Repository;
 }
 
+interface MutationData {
+  clientMutationId: string;
+  starrable: {
+    id: string;
+    viewerHasStarred: boolean;
+  };
+}
+
+interface AddRemoveStarMutationVariables {
+  input: {
+    starrableId: string;
+  };
+}
+
 function StarButton({ node }: StarButtonProps) {
   const totalCount = node.stargazers.totalCount;
   const viewrHasStared = node.viewerHasStarred;
   const starCount = totalCount === 1 ? "1 star" : `${totalCount} stars`;
+  const [addStar, { loading: addStarLoading }] = useMutation<
+    MutationData,
+    AddRemoveStarMutationVariables
+  >(ADD_STAR);
+  const [removeStar, { loading: removeStarLoading }] = useMutation<
+    MutationData,
+    AddRemoveStarMutationVariables
+  >(REMOVE_STAR);
+  const handleAddStar = () => {
+    addStar({
+      variables: {
+        input: {
+          starrableId: node.id,
+        },
+      },
+    });
+  };
+
+  const handleRemoveStar = () => {
+    removeStar({
+      variables: {
+        input: {
+          starrableId: node.id,
+        },
+      },
+    });
+  };
   return (
-    <button>
+    <button
+      onClick={viewrHasStared ? handleRemoveStar : handleAddStar}
+      disabled={addStarLoading || removeStarLoading}
+    >
       {starCount} | {viewrHasStared ? "starred" : "-"}
     </button>
   );

@@ -49,3 +49,27 @@ export const SEARCH_REPOSITORIES = gql`
     }
   }
 `;
+
+export const ADD_STAR = gql`
+  mutation addStar($input: AddStarInput!) {
+    addStar(input: $input) {
+      clientMutationId
+      starrable {
+        id
+        viewerHasStarred
+      }
+    }
+  }
+`;
+
+export const REMOVE_STAR = gql`
+  mutation removeStar($input: RemoveStarInput!) {
+    removeStar(input: $input) {
+      clientMutationId
+      starrable {
+        id
+        viewerHasStarred
+      }
+    }
+  }
+`;
