@@ -3,13 +3,28 @@ import { useQuery } from "@apollo/client";
 import { SEARCH_REPOSITORIES } from "./graphql";
 import { useState } from "react";
 
-const INITIAL_VARIABLES = {
-  after: null,
-  before: null,
-  first: 5,
-  last: null,
-  query: "フロントエンドエンジニア",
-};
+interface Repository {
+  id: string;
+  name: string;
+  url: string;
+}
+
+interface PageInfo {
+  __typename: string;
+  endCursor: string;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  startCursor: string;
+}
+interface SearchResults {
+  repositoryCount: number;
+  edges: { node: Repository }[];
+  pageInfo: PageInfo;
+}
+
+interface QueryData {
+  search: SearchResults;
+}
 
 type QueryVariables = {
   after: string | null;
@@ -19,33 +34,94 @@ type QueryVariables = {
   query: string;
 };
 
+const PER_PAGE = 5;
+
+const INITIAL_VARIABLES = {
+  after: null,
+  before: null,
+  first: PER_PAGE,
+  last: null,
+  query: "フロントエンドエンジニア",
+};
+
 function App() {
-  const [valiables, setValiables] = useState<QueryVariables>(INITIAL_VARIABLES);
-  const { loading, error, data } = useQuery(SEARCH_REPOSITORIES, {
-    variables: valiables,
-  });
+  const [variables, setVariables] = useState<QueryVariables>(INITIAL_VARIABLES);
+  const { loading, error, data } = useQuery<QueryData, QueryVariables>(
+    SEARCH_REPOSITORIES,
+    {
+      variables: variables,
+    }
+  );
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error : {error.message}</p>;
 
   const handleChangeQuery = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValiables({
-      ...valiables,
+    setVariables({
+      ...variables,
       query: event.target.value,
     });
   };
-  console.log("query:", valiables.query);
+  console.log("query:", variables.query);
+  const search = data?.search;
+  const repositoryCount = search?.repositoryCount;
+  const repositoryUnit = repositoryCount === 1 ? "Repository" : "Repositories";
+  const title = `GitHub Repositories Search Results - ${repositoryCount} ${repositoryUnit}`;
+
+  const handleGoPrevious = (search: SearchResults) => {
+    setVariables({
+      ...variables,
+      first: null,
+      after: null,
+      last: PER_PAGE,
+      before: search.pageInfo.startCursor,
+    });
+  };
+
+  const handleGoNext = (search: SearchResults) => {
+    setVariables({
+      ...variables,
+      first: PER_PAGE,
+      after: search.pageInfo.endCursor,
+      last: null,
+      before: null,
+    });
+  };
+
+  console.log(data?.search.pageInfo);
+
   return (
     <>
-      <div>Hello</div>
       <form>
         <input
           type="text"
-          value={valiables.query}
+          value={variables.query}
           onChange={handleChangeQuery}
         />
       </form>
-      {console.log(data)}
+
+      <h2>{title}</h2>
+      <ul>
+        {search?.edges.map((edge) => {
+          return (
+            <li key={edge.node.id}>
+              <a href={edge.node.url} target="_blank" rel="noopener noreferrer">
+                {edge.node.name}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+      {search?.pageInfo.hasPreviousPage ? (
+        <button onClick={() => handleGoPrevious(search)}>Previous</button>
+      ) : (
+        <></>
+      )}
+      {search?.pageInfo.hasNextPage ? (
+        <button onClick={() => handleGoNext(search)}>Next</button>
+      ) : (
+        <></>
+      )}
     </>
   );
 }
