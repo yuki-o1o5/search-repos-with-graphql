@@ -111,7 +111,7 @@ function App() {
                 {edge.node.name}
               </a>
               &nbsp;
-              <StarButton node={edge.node} />
+              <StarButton node={edge.node} variables={variables} />
             </li>
           );
         })}
@@ -134,14 +134,21 @@ export default App;
 
 interface StarButtonProps {
   node: Repository;
+  variables: QueryVariables;
+}
+
+interface Stargazers {
+  totalCount: number;
+}
+
+interface Starrable {
+  id: string;
+  viewerHasStarred: boolean;
+  stargazers: Stargazers;
 }
 
 interface MutationData {
-  clientMutationId: string;
-  starrable: {
-    id: string;
-    viewerHasStarred: boolean;
-  };
+  starrable: Starrable;
 }
 
 interface AddRemoveStarMutationVariables {
@@ -150,36 +157,39 @@ interface AddRemoveStarMutationVariables {
   };
 }
 
-function StarButton({ node }: StarButtonProps) {
+function StarButton({ node, variables }: StarButtonProps) {
   const totalCount = node.stargazers.totalCount;
   const viewrHasStared = node.viewerHasStarred;
   const starCount = totalCount === 1 ? "1 star" : `${totalCount} stars`;
   const [addStar, { loading: addStarLoading }] = useMutation<
     MutationData,
     AddRemoveStarMutationVariables
-  >(ADD_STAR);
+  >(ADD_STAR, {
+    variables: {
+      input: {
+        starrableId: node.id,
+      },
+    },
+    refetchQueries: [{ query: SEARCH_REPOSITORIES, variables: variables }],
+  });
+
   const [removeStar, { loading: removeStarLoading }] = useMutation<
     MutationData,
     AddRemoveStarMutationVariables
-  >(REMOVE_STAR);
-  const handleAddStar = () => {
-    addStar({
-      variables: {
-        input: {
-          starrableId: node.id,
-        },
+  >(REMOVE_STAR, {
+    variables: {
+      input: {
+        starrableId: node.id,
       },
-    });
+    },
+    refetchQueries: [{ query: SEARCH_REPOSITORIES, variables: variables }],
+  });
+  const handleAddStar = () => {
+    addStar();
   };
 
   const handleRemoveStar = () => {
-    removeStar({
-      variables: {
-        input: {
-          starrableId: node.id,
-        },
-      },
-    });
+    removeStar();
   };
   return (
     <button
